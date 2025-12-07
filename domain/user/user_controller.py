@@ -1,119 +1,99 @@
+from sqlalchemy.orm import Session
 from typing import Dict, Any, List, Optional
 from datetime import datetime
 from common.security import get_password_hash, verify_password, create_access_token
-from common.exceptions.customException import AlreadyEmailException, InvalidIdPasswordException, UnauthorizedException
-from . import user_schemas
+from common.exceptions.customException import AlreadyEmailException, InvalidIdPasswordException, UnauthorizedException, UserNotFoundException
+from . import user_schemas, user_model
 
-USER_DB : List[Dict[str, Any]] = []
-NEXT_USER_ID = 1
-
-def sign_up(request: user_schemas.UserSignUpRequest) -> Dict[str, Any]:    
-    global NEXT_USER_ID
+def sign_up(db : Session, request: user_schemas.UserSignUpRequest):        
+    existing_user = db.query(user_model.User).filter(user_model.User).filter(user_model.User.email == request.email).first()
     
-    for user in USER_DB:
-        if user["emal"] == request.email:
-            raise AlreadyEmailException("이미 존재하는 이메일입니다.")
+    if existing_user:
+        raise AlreadyEmailException
     
     hashed_pw = get_password_hash(request.password)
     
-    new_user = {
-        "userId" : NEXT_USER_ID,
-        "email" : request.email,
-        "password" : hashed_pw,
-        "nickname" : request.nickname,
-        "profileImageId" : request.profileImageId,
-        "createdAt" : datetime.now()
-    }
+    new_user = user_model.User(
+        email = request.email,
+        password = hashed_pw,
+        nickname = request.nickname,
+        profileImageId = request.profileImageId
+    )
+    db.add(new_user)
+    db.commit() # 확정 -> 이때 userId 자동 생성
+    db.refresh(new_user)
     
-    USER_DB.append(new_user)
-    NEXT_USER_ID += 1
-    
-    return{
-        "userId": new_user["userId"],
-        "email": new_user["email"],
-        "nickname": new_user["nickname"],
-        "profileImageId": new_user["profileImageId"]       
-    }
+    return new_user
 
-def login(request : user_schemas.UserLoginRequest) -> Dict[str, Any]:
-    user_found = None
-    for user in USER_DB:
-        if user["email"] == request.email:
-            user_found = user
-            break
-        
-    if not user_found:
-        raise InvalidIdPasswordException
+def login(db: Session, request : user_schemas.UserLoginRequest) :
+    user = db.query(user_model.User).filter(user_model.User.email == request.email).first()
     
-    if not verify_password(request.password, user_found["password"]):
+    if not user:
+        raise UserNotFoundException
+    
+    if not verify_password(request.password, user.password):
         raise InvalidIdPasswordException
         
-    access_token = create_access_token(data={"sub" : str(user_found["userId"])})
+    access_token = create_access_token(data={"sub" : str(user.userId)})
     
     return{
         "accessToken" : access_token,
         "tokenType" : "Bearer"
     }
 
-def updateInfo(request : user_schemas.UserUpdateRequest, user_id : int) -> Dict[str, Any]:
-    user_found = None
-    for user in USER_DB:
-        if user["userId"] == user_id:
-            user_found = user
-            break
+def updateInfo(db: Session, request : user_schemas.UserUpdateRequest, user_id : int):
+    user_found = db.query(user_model.User).filter(user_model.User.userId == user_id).first()
+    
     if not user_found:
         raise UnauthorizedException
     
-    user_found["nickname"] = request.nickname if request.nickname is not None else user_found["nickname"]
+    if request.nickname is not None:
+        user_found.nickname = request.nickname
+        
     if request.profileImageId is not None:
-        user["profileImageId"] = request.profileImageId
-    
+        user_found.profileImageId = request.profileImageId
+        
+    db.commit() #⭐️⭐️⭐️
+
     return{
-        "userId" : user_id,
+        "userId" : user_found.userId,
         "isUpdated" : True
     }
     
-def update_password(request : user_schemas.PasswordUpdateRequest, user_id : int) -> Dict[str, Any]:
-    user_found = None
-    for user in USER_DB:
-        if user["userId"] == user_id:
-            user_found = user
-            break
+def update_password(db:Session, request : user_schemas.PasswordUpdateRequest, user_id : int) -> Dict[str, Any]:
+    user_found = db.query(user_model.User).filter(user_model.User.userId == user_id).first()
     if not user_found:
         raise UnauthorizedException
     
     hashed_new_pw = get_password_hash(request.newPassword)
     
-    user_found["password"] = hashed_new_pw
+    user_found.password = hashed_new_pw
+    
+    db.commit()
     
     return {"userId" : user_id, "isUpdated" : True}
 
-def read_user_info(user_id : int) -> Dict[str, Any]:
-    user_found = None
-    for user in USER_DB:
-        if user["userId"] == user_id:
-            user_found = user
-            break
+def read_user_info(db: Session, user_id : int) -> Dict[str, Any]:
+    user_found = db.query(user_model.User).filter(user_model.User.userId == user_id).first()
+    
     if not user_found:
         raise UnauthorizedException
 
     response_data = {
-        "email" : user_found["email"],
-        "nickname" : user_found["nickname"],
-        "profileImageId" : user_found.get("profileImageId")
+        "email" : user_found.email,
+        "nickname" : user_found.nickname,
+        "profileImageId" : user_found.profileImageId
     }
     return response_data
     
-def delete_user(user_id : int) -> Dict[str, Any]:
-    user_found_index = -1
-    for i, user in enumerate(USER_DB):
-        if user["userId"] == user_id:
-            user_found_index = i
-            break
-    if user_found_index == -1 :
+def delete_user(db: Session, user_id : int) -> Dict[str, Any]:
+    user_found = db.query(user_model.User).filter(user_model.User.userId == user_id).first()
+    
+    if not user_found:
         raise UnauthorizedException
     
-    USER_DB.pop(user_found_index)
+    db.delete(user_found)
+    db.commit()
     
     response = {
         "userId" : user_id,

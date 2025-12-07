@@ -1,60 +1,23 @@
-from typing import List, Dict, Any
-from datetime import datetime
+from sqlalchemy import create_engine
+from sqlalchemy.ext.declarative import declarative_base
+from sqlalchemy.orm import sessionmaker
 
-POST_DB : List[Dict[str, Any]] = [
-    {"id" : 1, 
-     "userId" : 1, 
-     "title" : "제목1", 
-     "content" : "내용1", 
-     "imageId": 1, 
-     "createdAt": datetime.now(),
-     "updatedAt" : datetime.now(),
-     "likesCnt" : 0,
-     "viewsCnt" : 0,
-     "commentCnt" : 0,
-     "comments" : []
-     },
-    {"id" : 2, 
-     "userId" : 1, 
-     "title" : "제목2", 
-     "content" : "내용2", 
-     "imageId": 0, 
-     "createdAt": datetime.now(),
-     "updatedAt" : datetime.now(),
-     "likesCnt" : 0,
-     "viewsCnt" : 0,
-     "commentCnt" : 0,
-     "comments" : []
-     },
-]
+# 형식: postgresql://아이디:비밀번호@주소:포트/DB이름
+SQLALCHEMY_DATABASE_URL = "postgresql://myuser:pwd1234@localhost:5432/mydb"
 
-COMMENT_DB : List[Dict[str, Any]] = [
-    {"id" : 1, 
-     "author" : {
-         "userId" : 1,
-         "nickname" : "작성자1",
-     },
-     "postId" : 1,
-     "content" : "댓글내용1",
-     "createdAt" : datetime.now()
-    },
-    {"id" : 2,
-     "author" : {
-         "userId" : 1,
-         "nickname" : "작성자1"
-    },
-     "postId" : 2,
-     "content" : "댓글내용2",
-     "createdAt" : datetime.now()
-    }
-]
+# 엔진 생성(파이썬과 DB 연결)
+engine = create_engine(SQLALCHEMY_DATABASE_URL)
 
-USER_DB : List[Dict[str, Any]] = []
-LIKES_DB : List[Dict[str, Any]] = []
-IMAGE_DB : List[Dict[str, Any]] = []
+# DB 세션 생성기
+SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
-NEXT_USER_ID = 1
-NEXT_POST_ID = 3
-NEXT_LIKES_ID = 1
-NEXT_COMMENT_ID = 3
-NEXT_IMAGE_ID = 1
+# 모델(테이블)을 만들 떄 상속받는 기본 클래스
+Base = declarative_base()
+
+# DB 세션을 함수마다 빌려주고 닫아줌.(Dependency Injection용)
+def get_db():
+    db = SessionLocal()
+    try:
+        yield db
+    finally:
+        db.close()
