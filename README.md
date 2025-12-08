@@ -1,8 +1,8 @@
 # ktb3-elaine-park-BE
 
-# 🌊 MoodWaker Backend API
+# 🌊 MoodWaver Backend API
 
-**MoodWaker**는 사용자의 감정 텍스트를 분석하여 상황에 맞는 음악을 추천해주는 커뮤니티 서비스의 백엔드 서버입니다.
+**MoodWaver**는 사용자의 감정 텍스트를 분석하여 상황에 맞는 음악을 추천해주는 커뮤니티 서비스의 백엔드 서버입니다.
 **FastAPI**를 기반으로 구축되었으며, **Sentence-Transformers** AI 모델을 활용한 텍스트 임베딩 및 유사도 분석 기능을 제공합니다.
 
 ## 🛠 Tech Stack
