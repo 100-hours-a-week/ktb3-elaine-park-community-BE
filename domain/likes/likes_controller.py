@@ -1,31 +1,33 @@
+from sqlalchemy.orm import Session
 from typing import Dict, Any, Optional
 from common.exceptions.customException import(
     PostNotFoundException, UnauthorizedException
 )
 from common.apiResponse import CommonResponse
-from common.database import USER_DB, POST_DB, COMMENT_DB, NEXT_LIKES_ID
-from . import likes_schemas
+from . import likes_model
+from domain.post import post_model
 
-def create_likes(user_id : int, post_id: int) -> Dict[str, Any]:
-    global NEXT_LIKES_ID
+def togle_likes(db: Session, user_id : int, post_id: int):
+    post = db.query(post_model.Post).filter(post_model.Post.postId == post_id).first()
     
-    found_index = -1
-    for i, post in enumerate(POST_DB):
-        if post["id"] == post_id:
-            found_index = i
-            break
-    if found_index == -1:
-        raise PostNotFoundException("좋아요 등록할 게시글을 찾을 수 없습니다.")
+    if not post:
+        raise PostNotFoundException
     
-    post = POST_DB[found_index]
-
-    post["likesCnt"] += 1
+    existing_like = db.query(likes_model.Likes).filter(
+        likes_model.Likes.userId == user_id,
+        likes_model.Likes.postId == post_id
+    ).first()
     
-    created_likes = {
-        "id" : NEXT_LIKES_ID,
-        "post_id" : post["id"],
-        "user_id" : user_id,
-        "likesCnt" : post["likesCnt"]
-    }
+    if existing_like:
+        db.delete(existing_like)
+        post.likesCnt -= 1
+        message = "likes_cancel"
+    else:
+        new_like = likes_model.Likes(userId=user_id, postId = post_id)
+        db.add(new_like)
+        post.likesCnt += 1
+        message = "likes_register"
     
-    return created_likes
+    db.commit()
+    
+    return {"flag" : message, "likesCnt": post.likesCnt}

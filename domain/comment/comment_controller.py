@@ -1,3 +1,4 @@
+from sqlalchemy.orm import Session
 from typing import Dict, Any, List, Optional
 from common.exceptions.customException import (
     PostNotFoundException, CommentNotFoundException, 
@@ -5,85 +6,68 @@ from common.exceptions.customException import (
     UserNotFoundException
     )
 from datetime import datetime
-from common.database import USER_DB, POST_DB, COMMENT_DB, NEXT_COMMENT_ID
+from . import comment_model, comment_schemas
+from domain.post import post_model
 
-def create_comment(user_id: int, post_id : int, content : str) -> Dict[str, Any]:
-    global NEXT_COMMENT_ID
-    
-    post_exists = any(post["id"] == post_id for post in POST_DB)
+def create_comment(db: Session, user_id: int, post_id : int, content : str):
+    post_exists = db.query(post_model.Post).filter(post_model.Post.postId == post_id).first()
         
     if not post_exists:
         raise PostNotFoundException("댓글 생성할 게시글을 찾을 수 없습니다.")
     
-    user_info = next((u for u in USER_DB if u["userId"] == user_id), None)
-    if not user_info:
-        raise UserNotFoundException
+    new_comment = comment_model.Comment(
+        userId = user_id,
+        postId = post_id,
+        content = content
+    )
     
-    author_data = {
-        "userId" : user_id,
-        "nickname" : user_info["nickname"]
-    }
+    post_exists.commentsCnt += 1
     
-    new_comment = {
-        "commentId" : NEXT_COMMENT_ID,
-        "author" : author_data,
-        "postId" : post_id,
-        "content" : content,
-        "createdAt" : datetime.now()
-    }
-    
-    COMMENT_DB.append(new_comment)
-    NEXT_COMMENT_ID += 1
+    db.add(new_comment)
+    db.commit()
+    db.refresh(new_comment)
     
     return new_comment
 
-def update_comment(user_id: int, post_id : int, comment_id : int, content: str) -> Dict[str, Any]:
-    found_index = -1
-    for i, comment in enumerate(COMMENT_DB):
-        if comment["id"] == comment_id:
-            found_index = i
-            break
-    if found_index == -1:
-        raise CommentNotFoundException("해당 댓글을 찾을 수 없습니다.")
+def update_comment(db: Session, user_id: int, post_id : int, comment_id : int, content: str):
+    comment_found = db.query(comment_model.Comment).filter(comment_model.Comment.commentId == comment_id).first()
     
-    existing_comment = COMMENT_DB[found_index]
-
-    if existing_comment["author"]["userId"] != user_id:
-        raise UnauthorizedException("해당 권한을 사용할 수 없습니다.")
+    if not comment_found:
+        raise CommentNotFoundException
     
-    existing_comment["content"] = content if content is not None else existing_comment["content"]
+    if comment_found.postId != post_id:
+        raise CommentNotFoundException
     
-    updated_comment = {
-        "id" : comment_id,
-        "author" :{
-            "userId" : user_id,
-            "nickname" : existing_comment["author"]["nickname"]
-        },
-        "postId": existing_comment["postId"],
-        "content" : existing_comment["content"],
-        "createdAt" : existing_comment["createdAt"]
-    }
+    if comment_found.userId != user_id:
+        raise UnauthorizedException
     
-    return updated_comment
+    if content is not None:
+        comment_found.content = content
     
-def delete_comment(post_id : int, comment_id : int, user_id : int) -> Dict[str, Any]:
-    found_index = -1
-    for i, comment in enumerate(COMMENT_DB):
-        if comment["id"] == comment_id:
-            found_index = i
-            break
-    if found_index == -1:
-        raise CommentNotFoundException("해당 댓글을 찾을 수 없습니다.")
+    db.commit()
     
-    comment = COMMENT_DB[found_index]
-
-    if comment["user_Id"] != user_id:
-        raise UnauthorizedException("본인의 댓글만 삭제할 수 있습니다.")
-       
-    COMMENT_DB.pop(found_index)
+    return comment_found
+    
+def delete_comment(db: Session, user_id : int, post_id : int, comment_id : int):
+    comment_found = db.query(comment_model.Comment).filter(comment_model.Comment.commentId == comment_id).first()
+    
+    if not comment_found:
+        raise CommentNotFoundException
+    
+    if comment_found.postId != post_id:
+        raise CommentNotFoundException("해당 게시글에 존재하지 않는 댓글입니다.")
+    
+    if comment_found.userId != user_id:
+        raise UnauthorizedException
+    
+    if comment_found.post:
+        comment_found.post.commentsCnt -= 1
+        
+    db.delete(comment_found)
+    db.commit()
     
     deleted_comment = {
-        "commentId" : found_index,
+        "commentId" : comment_id,
         "isDeleted" : True
     }
     return deleted_comment

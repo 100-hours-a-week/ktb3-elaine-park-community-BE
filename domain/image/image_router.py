@@ -1,9 +1,7 @@
-from fastapi import APIRouter, UploadFile, File, status
-from typing import List, Dict, Any
-import shutil
-import uuid
-import os
-from common.database import IMAGE_DB, NEXT_IMAGE_ID
+from fastapi import APIRouter, UploadFile, File, status, Depends
+from sqlalchemy.orm import Session
+from common.apiResponse import CommonResponse
+from common.database import get_db
 from . import image_controller
 
 from common.apiResponse import CommonResponse
@@ -16,9 +14,13 @@ router = APIRouter(
 UPLOAD_DIR = "uploaded_images"
 
 @router.post("/upload", status_code=status.HTTP_201_CREATED)
-async def upload_image(file : UploadFile = File(...)):
-    result = image_controller.upload_image(file)
+async def upload_image(file : UploadFile = File(...), db:Session = Depends(get_db)):
+    new_image = image_controller.upload_image(db, file)
     
+    result = {
+        "imageId" : new_image.imageId,
+        "url" : new_image.url
+    }
     return CommonResponse.success_response(
         message="image_upload_success",
         result=result

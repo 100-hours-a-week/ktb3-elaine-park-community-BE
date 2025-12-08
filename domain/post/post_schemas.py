@@ -2,10 +2,11 @@ from pydantic import BaseModel, Field
 from typing import Optional, List
 from datetime import datetime
 from domain.comment.comment_schemas import CommentModel
+from common.apiResponse import CommonResponse
 
 #Entity 역할
 class PostModel(BaseModel):
-    id : int
+    postId : int
     userId : int
     title : str
     content : str
@@ -30,7 +31,7 @@ class PostUpdateRequest(BaseModel):
     imageId : Optional[int] = None
     
 class PostUpdateResponse(BaseModel):
-    id : int
+    postId : int
     title : str
     content : str
     imageId : int
@@ -42,7 +43,7 @@ class PostDeleteResponse(BaseModel):
 class PostAuthorDetail(BaseModel):
     userId : int
     nickname : str
-    profileImage : str  
+    profileImageId : int  
     
 class PostReadDetailResponse(BaseModel):
     postId : int
@@ -60,8 +61,11 @@ class PostListReadResponse(BaseModel):
     postId : int
     userId : int
     title : str
-    likes : int
-    comment : int
-    views : int
+    likesCnt : int
+    commentsCnt : int
+    viewsCnt : int
     createdAt : datetime
-    profileImage : str
+    profileImageId : Optional[int]=None
+
+class PostListResponseWrapper(CommonResponse[List[PostListReadResponse]]):
+    pass
