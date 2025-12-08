@@ -13,7 +13,6 @@ def togle_likes(db: Session, user_id : int, post_id: int):
     if not post:
         raise PostNotFoundException
     
-    found_index = -1
     existing_like = db.query(likes_model.Likes).filter(
         likes_model.Likes.userId == user_id,
         likes_model.Likes.postId == post_id

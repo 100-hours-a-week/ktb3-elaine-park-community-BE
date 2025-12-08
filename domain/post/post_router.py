@@ -3,16 +3,15 @@ from common.database import get_db
 from fastapi import APIRouter,status, Path, Query, Depends
 from common.dependencies import get_current_user_id
 from common.apiResponse import CommonResponse
-from . import post_controller
+from . import post_schemas, post_controller
 from typing import Dict, Any, List
-from . import post_schemas
 
 router = APIRouter(
     prefix="/posts",
     tags=["게시글"],
 )
     
-@router.post("/", response_model=CommonResponse[post_schemas.PostModel], status_code=status.HTTP_201_CREATED)
+@router.post("", response_model=CommonResponse[post_schemas.PostModel], status_code=status.HTTP_201_CREATED)
 async def create_post(
     post: post_schemas.PostCreateReqest,
     db: Session = Depends(get_db),
@@ -42,15 +41,15 @@ async def delete_post(
     is_deleted = post_controller.delete_post(db, post_id, user_id)
     return CommonResponse.success_response(message="delete_post_success", result= is_deleted)
 
-@router.get("/", response_model=CommonResponse[List[post_schemas.PostListReadResponse]], status_code=status.HTTP_200_OK)
+@router.get("", response_model=post_schemas.PostListResponseWrapper, status_code=status.HTTP_200_OK)
 async def read_list_post(
     page : int = Query(0, ge=0, description="페이지 번호(0부터)"),
-    limit : int = Query(10, gt=0, le=100, description="한 번에 가져올 개수"),
-    db : Session = Query(get_db)
-) -> CommonResponse[List[post_schemas.PostListReadResponse]]:
+    limit : int = Query(10, ge=1, le=100, description="한 번에 가져올 개수"),
+    db : Session = Depends(get_db)
+):
     result = post_controller.get_post_list(db, page, limit)
     
-    return CommonResponse.success_response(message="post_list_success", result=result)
+    return post_schemas.PostListResponseWrapper(message="post_list_success", result=result)
 
 @router.get("/{post_id}", response_model=CommonResponse[post_schemas.PostReadDetailResponse], status_code=status.HTTP_200_OK)
 async def read_detail_post(

@@ -6,7 +6,7 @@ from common.exceptions.customException import AlreadyEmailException, InvalidIdPa
 from . import user_schemas, user_model
 
 def sign_up(db : Session, request: user_schemas.UserSignUpRequest):        
-    existing_user = db.query(user_model.User).filter(user_model.User).filter(user_model.User.email == request.email).first()
+    existing_user = db.query(user_model.User).filter(user_model.User.email == request.email).first()
     
     if existing_user:
         raise AlreadyEmailException

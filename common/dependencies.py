@@ -2,7 +2,6 @@ from fastapi import Depends, status
 from fastapi.security import OAuth2PasswordBearer
 from jose import jwt, JWTError
 from common.security import SECRET_KEY, ALGORITHM
-from domain.user.user_controller import USER_DB
 from common.exceptions.customException import CredentialException
 
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/users/login")

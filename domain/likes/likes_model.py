@@ -9,9 +9,9 @@ class Likes(Base):
     
     likesId = Column(Integer, primary_key=True, index=True)
     
-    postId = Column(Integer, ForeignKey("posts.postId"), nullable=False, ondelete="CASCADE")
+    postId = Column(Integer, ForeignKey("posts.postId", ondelete="CASCADE"), nullable=False)
     post = relationship("Post", back_populates="likes")
     
-    userId = Column(Integer, ForeignKey("users.userId"), nullable=False, ondelete="CASCADE")
+    userId = Column(Integer, ForeignKey("users.userId", ondelete="CASCADE"), nullable=False)
     author = relationship("User")
     

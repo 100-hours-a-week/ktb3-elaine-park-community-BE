@@ -12,9 +12,9 @@ class Comment(Base):
     createdAt = Column(DateTime, default=func.now())
     updatedAt = Column(DateTime, default=func.now(), onupdate=func.now())
     
-    userId = Column(Integer, ForeignKey("users.userId"), nullable=False, ondelete="CASCADE")
+    userId = Column(Integer, ForeignKey("users.userId", ondelete="CASCADE"), nullable=False)
     author = relationship("User")
     
-    postId = Column(Integer, ForeignKey("posts.postId"), nullable=False, ondelete="CASCADE")
+    postId = Column(Integer, ForeignKey("posts.postId", ondelete="CASCADE"), nullable=False)
     post = relationship("Post", back_populates="comments")
     

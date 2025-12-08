@@ -48,7 +48,7 @@ def update_comment(db: Session, user_id: int, post_id : int, comment_id : int, c
     
     return comment_found
     
-def delete_comment(db: Session, post_id : int, comment_id : int, user_id : int):
+def delete_comment(db: Session, user_id : int, post_id : int, comment_id : int):
     comment_found = db.query(comment_model.Comment).filter(comment_model.Comment.commentId == comment_id).first()
     
     if not comment_found:
@@ -61,7 +61,7 @@ def delete_comment(db: Session, post_id : int, comment_id : int, user_id : int):
         raise UnauthorizedException
     
     if comment_found.post:
-        comment_found.post.commentCnt -= 1
+        comment_found.post.commentsCnt -= 1
         
     db.delete(comment_found)
     db.commit()

@@ -52,11 +52,11 @@ async def update_comment(
 
 @router.delete("/{comment_id}", response_model=CommonResponse[comment_schemas.CommentDeleteResponse], status_code=status.HTTP_200_OK)
 async def delete_comment(
-    post_id : int = Path(..., gt = 0, description="삭제할 댓글의 게시글 아이디"),
+    post_id : int = Path(..., gt=0, description="삭제할 댓글의 게시글 아이디"),
     comment_id : int = Path(..., gt=0, description="삭제할 댓글 아이디"),
-    db : Session = Depends(get_current_user_id),
+    db : Session = Depends(get_db),
     user_id : int = Depends(get_current_user_id)
-)-> CommonResponse[Dict[str, Any]]:
+):
     deleted_comment = comment_controller.delete_comment(
         db=db,
         user_id = user_id,

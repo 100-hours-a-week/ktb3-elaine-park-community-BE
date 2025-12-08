@@ -20,7 +20,7 @@ def create_post(db: Session, request: post_schemas.PostCreateReqest, user_id : i
         content = request.content,
         imageId = request.imageId,
         viewsCnt = 0,
-        commentCnt = 0,
+        commentsCnt = 0,
         likesCnt = 0,
         comments = []    
     )
@@ -87,13 +87,13 @@ def get_post_list(db: Session, page : int, limit : int):
     response_list = []
         
     for post in posts:
-    
         item = {
             "postId" : post.postId,
+            "userId" : post.userId,
             "title" : post.title,
             "likesCnt" : post.likesCnt,
-            "commentCnt" : post.commentsCnt,
-            "viewsCnt" : post.viewCnt,
+            "commentsCnt" : post.commentsCnt,
+            "viewsCnt" : post.viewsCnt,
             "createdAt" : post.createdAt,
             "profileImageId" : post.author.profileImageId if post.author else None
         }
@@ -133,10 +133,10 @@ def read_detail_post(db: Session, post_id : int):
         "author" : {
             "userId" : found_post.userId,
             "nickname" : author_nickname,
-            "profileImage" : author_profile_img
+            "profileImageId" : author_profile_img
         },
         "createdAt" : found_post.createdAt,
-        "contentImage" : found_post.imageId,
+        "contentImageId" : found_post.imageId,
         "likesCnt" : found_post.likesCnt,
         "viewsCnt" : found_post.viewsCnt,
         "commentCnt" : len(comment_list),

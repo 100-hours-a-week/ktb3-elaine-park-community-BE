@@ -15,9 +15,9 @@ class User(Base):
     
     profileImageId = Column(Integer, nullable=True)
     
-    posts = relationship("Post", back_populates="author")
-    comments = relationship("Comment", back_populates="author")
-    likes = relationship("Likes", back_populates="author")
+    posts = relationship("Post", back_populates="author", cascade="all, delete-orphan")
+    comments = relationship("Comment", back_populates="author", cascade="all, delete-orphan")
+    likes = relationship("Likes", back_populates="author", cascade="all, delete-orphan")
     
     createdAt = Column(DateTime, default=datetime.now)
     updatedAt = Column(DateTime, nullable=False, default=func.now(), onupdate=func.now())

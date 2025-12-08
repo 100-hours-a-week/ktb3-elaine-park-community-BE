@@ -17,13 +17,13 @@ class Post(Base):
     commentsCnt = Column(Integer, default=0)
 
     # 외래키 설정
-    userId = Column(Integer, ForeignKey("users.userId"), nullable=False, ondelete="CASCADE")
+    userId = Column(Integer, ForeignKey("users.userId", ondelete="CASCADE"), nullable=False)
     
     author = relationship("User", back_populates="posts")
     
-    comments = relationship("Comment", back_populates="post")
+    comments = relationship("Comment", back_populates="post", cascade="all, delete-orphan")
     
-    likes = relationship("Likes", back_populates="post")
+    likes = relationship("Likes", back_populates="post", cascade="all, delete-orphan")
     
     createdAt = Column(DateTime, default=func.now())
     updatedAt = Column(DateTime, default=func.now(), onupdate=func.now())
